@@ -322,8 +322,9 @@ HAVING (COUNT(CASE WHEN v.choice='yes' THEN 1 END) * 100.0 /
   - Total sessions
   - Total swipes across all sessions
   - Average swipes per session
+  - **Average decision time** (seconds per vote, calculated as session duration ÷ total swipes)
   - Number of unique days with activity
-- **Live polling**: Refreshes every 5 seconds; displays 4 stat cards with emoji icons.
+- **Live polling**: Refreshes every 5 seconds; displays 5 stat cards with emoji icons.
 - Located in the "Analytics 📈" tab.
 
 **Database schema:**
@@ -339,7 +340,7 @@ CREATE TABLE sessions (
 **Endpoints:**
 - `POST /api/session/start { sessionId }` — Insert or ignore if already exists.
 - `POST /api/session/end { sessionId }` — Mark session as ended; return total swipes and duration.
-- `GET /api/analytics` — Returns `{ totalSessions, totalSwipes, avgSwipesPerSession, uniqueDays }`.
+- `GET /api/analytics` — Returns `{ totalSessions, totalSwipes, avgSwipesPerSession, avgDecisionSeconds, uniqueDays }`.
 
 **Files:**
 - Backend: 3 new endpoints, session lifecycle tracking in `server.js`; new `sessions` table in `db.js`

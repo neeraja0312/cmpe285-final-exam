@@ -84,6 +84,11 @@ export default function AnalyticsView({ onBack }) {
               icon="📈"
             />
             <StatCard
+              label="Avg Decision Time"
+              value={`${analytics.avgDecisionSeconds.toFixed(1)}s`}
+              icon="⏱️"
+            />
+            <StatCard
               label="Unique Days"
               value={analytics.uniqueDays}
               icon="📅"
