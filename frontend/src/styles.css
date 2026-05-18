@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  @apply bg-gradient-to-b from-rose-50 via-white to-sky-50 text-ink font-sans antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: contain;
+}
+
+/* Disable image drag-ghost which hijacks the gesture on desktop. */
+img {
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+/* Custom thin scrollbar in the results list */
+.scroll-thin::-webkit-scrollbar { width: 6px; }
+.scroll-thin::-webkit-scrollbar-thumb { background: rgba(15,23,42,0.15); border-radius: 9999px; }

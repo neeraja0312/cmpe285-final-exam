@@ -1,0 +1,16 @@
+node_modules/
+dist/
+build/
+.DS_Store
+*.log
+.env
+.env.local
+
+backend/data/votes.db
+backend/data/votes.db-journal
+backend/data/votes.db-wal
+backend/data/votes.db-shm
+backend/data/*.sqlite*
+backend/data/*.sqlite3*
+
+frontend/.vite/

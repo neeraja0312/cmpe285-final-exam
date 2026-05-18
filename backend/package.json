@@ -1,0 +1,17 @@
+{
+  "name": "paw-match-backend",
+  "version": "1.0.0",
+  "description": "Backend for Paw Match — swipe-to-vote dog adoption app (CMPE 285 Final Q10)",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "seed": "node src/seed.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.7.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
+  }
+}
