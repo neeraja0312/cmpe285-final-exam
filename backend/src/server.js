@@ -103,6 +103,49 @@ app.delete("/api/vote", (req, res) => {
 });
 
 /**
+ * POST /api/admin/items
+ * Body: { label: string, description: string (optional), imageUrl: string }
+ * Adds a new item to the items table for voting.
+ */
+app.post("/api/admin/items", (req, res) => {
+  const { label, description, imageUrl } = req.body || {};
+
+  if (!isNonEmptyString(label, 200)) {
+    return res.status(400).json({ error: "label must be a non-empty string (<=200 chars)" });
+  }
+  if (description !== undefined && !isNonEmptyString(description, 500)) {
+    return res.status(400).json({ error: "description must be a string (<=500 chars)" });
+  }
+  if (!isNonEmptyString(imageUrl, 500)) {
+    return res.status(400).json({ error: "imageUrl must be a non-empty string (<=500 chars)" });
+  }
+
+  // Validate imageUrl looks like a URL
+  try {
+    new URL(imageUrl);
+  } catch {
+    return res.status(400).json({ error: "imageUrl must be a valid URL" });
+  }
+
+  const info = db
+    .prepare(
+      `INSERT INTO items (label, description, image_url)
+       VALUES (?, ?, ?)`
+    )
+    .run(label, description || "", imageUrl);
+
+  const createdAt = db
+    .prepare("SELECT created_at FROM items WHERE id = ?")
+    .get(info.lastInsertRowid);
+
+  res.json({
+    ok: true,
+    itemId: info.lastInsertRowid,
+    createdAt: createdAt?.created_at,
+  });
+});
+
+/**
  * GET /api/results?sort=most_loved|most_divisive|most_skipped|most_voted
  * Aggregates across ALL users (the source of truth).
  */

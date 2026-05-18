@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import SwipeDeck, { DeckEmpty } from "./components/SwipeDeck.jsx";
 import ResultsView from "./components/ResultsView.jsx";
+import AdminPanel from "./components/AdminPanel.jsx";
 import {
   deleteVote,
   fetchItems,
@@ -15,11 +16,21 @@ export default function App() {
   const [index, setIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [view, setView] = useState("swipe"); // 'swipe' | 'results'
+  const [view, setView] = useState("swipe"); // 'swipe' | 'results' | 'admin'
   const [history, setHistory] = useState([]); // [{ itemId, choice }] for undo
 
   // Pull-down on the deck container also opens results.
   const containerRef = useRef(null);
+
+  const refetchItems = useCallback(async () => {
+    try {
+      const list = await fetchItems(sessionId);
+      setItems(list);
+      setIndex(0);
+    } catch (e) {
+      console.error("Error refetching items", e);
+    }
+  }, [sessionId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -82,7 +93,8 @@ export default function App() {
             className="flex-1 flex flex-col"
           >
             <Header
-              onOpenResults={() => setView("results")}
+              view={view}
+              onViewChange={setView}
               progress={progress}
               voted={index}
               total={items.length}
@@ -115,7 +127,7 @@ export default function App() {
               <ButtonRow onUndo={onUndo} canUndo={history.length > 0} />
             )}
 
-            <Footer onOpenResults={() => setView("results")} />
+            <Footer />
           </motion.div>
         )}
 
@@ -131,38 +143,75 @@ export default function App() {
             <ResultsView onBack={() => setView("swipe")} />
           </motion.div>
         )}
+
+        {view === "admin" && (
+          <motion.div
+            key="admin"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className="flex-1 flex flex-col"
+          >
+            <AdminPanel
+              onItemAdded={refetchItems}
+              onBack={() => setView("swipe")}
+            />
+          </motion.div>
+        )}
       </AnimatePresence>
     </div>
   );
 }
 
-function Header({ onOpenResults, progress, voted, total }) {
+function Header({ view, onViewChange, progress, voted, total }) {
+  const tabs = [
+    { key: "swipe", label: "Swipe", icon: "🐶" },
+    { key: "results", label: "Results", icon: "📊" },
+    { key: "admin", label: "Admin", icon: "➕" },
+  ];
+
   return (
     <header className="px-4 pt-4 pb-2 max-w-md w-full mx-auto">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <span className="text-2xl">🐶</span>
           <h1 className="text-xl font-extrabold tracking-tight">Paw Match</h1>
         </div>
-        <button
-          onClick={onOpenResults}
-          className="text-sm font-semibold text-slate-600 hover:text-accent transition"
-        >
-          Leaderboard →
-        </button>
       </div>
-      <div className="mt-3">
-        <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden">
-          <motion.div
-            className="h-full bg-accent"
-            animate={{ width: `${progress * 100}%` }}
-            transition={{ type: "spring", stiffness: 200, damping: 30 }}
-          />
-        </div>
-        <p className="text-[11px] text-slate-500 mt-1 tabular-nums">
-          {voted} / {total} dogs reviewed
-        </p>
+
+      {/* Tab navigation */}
+      <div className="flex gap-2 mb-3">
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => onViewChange(tab.key)}
+            className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold transition ${
+              view === tab.key
+                ? "bg-accent text-white"
+                : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+            }`}
+          >
+            {tab.icon} {tab.label}
+          </button>
+        ))}
       </div>
+
+      {/* Progress bar (only on swipe view) */}
+      {view === "swipe" && (
+        <>
+          <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden">
+            <motion.div
+              className="h-full bg-accent"
+              animate={{ width: `${progress * 100}%` }}
+              transition={{ type: "spring", stiffness: 200, damping: 30 }}
+            />
+          </div>
+          <p className="text-[11px] text-slate-500 mt-1 tabular-nums">
+            {voted} / {total} dogs reviewed
+          </p>
+        </>
+      )}
     </header>
   );
 }
@@ -202,15 +251,12 @@ function ButtonRow({ onUndo, canUndo }) {
   );
 }
 
-function Footer({ onOpenResults }) {
+function Footer() {
   return (
     <footer className="px-4 pb-5 pt-1 text-center">
-      <button
-        onClick={onOpenResults}
-        className="text-xs text-slate-500 hover:text-slate-700"
-      >
-        ⬇ Swipe down on a card (or tap here) to see results
-      </button>
+      <p className="text-xs text-slate-500">
+        💡 Swipe down on a card to see results
+      </p>
     </footer>
   );
 }

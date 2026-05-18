@@ -62,3 +62,13 @@ export async function fetchSessionVotes(sessionId) {
   );
   return data.votes;
 }
+
+export async function postNewItem({ label, description, imageUrl }) {
+  return jsonOrThrow(
+    await fetch(`${BASE}/admin/items`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ label, description, imageUrl }),
+    })
+  );
+}
