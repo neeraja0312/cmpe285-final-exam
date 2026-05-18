@@ -34,8 +34,16 @@ db.exec(`
     FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE
   );
 
+  CREATE TABLE IF NOT EXISTS sessions (
+    session_id TEXT    PRIMARY KEY,
+    started_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+    ended_at   INTEGER,
+    total_swipes INTEGER DEFAULT 0
+  );
+
   CREATE INDEX IF NOT EXISTS idx_votes_item ON votes(item_id);
   CREATE INDEX IF NOT EXISTS idx_votes_session ON votes(session_id);
+  CREATE INDEX IF NOT EXISTS idx_sessions_started ON sessions(started_at);
 `);
 
 export const DATA_PATH = DATA_DIR;

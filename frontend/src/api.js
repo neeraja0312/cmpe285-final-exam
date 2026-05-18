@@ -78,3 +78,28 @@ export async function fetchMatches(sessionId, threshold = 50) {
   const data = await jsonOrThrow(await fetch(url));
   return data;
 }
+
+export async function postSessionStart(sessionId) {
+  return jsonOrThrow(
+    await fetch(`${BASE}/session/start`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId }),
+    })
+  );
+}
+
+export async function postSessionEnd(sessionId) {
+  return jsonOrThrow(
+    await fetch(`${BASE}/session/end`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId }),
+    })
+  ).catch(() => ({ ok: false })); // Fail silently if beforeunload timing is tight
+}
+
+export async function fetchAnalytics() {
+  const data = await jsonOrThrow(await fetch(`${BASE}/analytics`));
+  return data;
+}

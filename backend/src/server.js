@@ -72,13 +72,21 @@ app.post("/api/vote", (req, res) => {
   if (!item) return res.status(404).json({ error: "unknown itemId" });
 
   // UPSERT — dedups by (session_id, item_id).
-  db.prepare(
+  const info = db.prepare(
     `INSERT INTO votes (session_id, item_id, choice)
      VALUES (?, ?, ?)
      ON CONFLICT(session_id, item_id) DO UPDATE
         SET choice = excluded.choice,
             updated_at = strftime('%s','now')`
   ).run(sessionId, itemId, choice);
+
+  // If this is a new vote (not an update), increment the swipe counter.
+  if (info.changes === 1) {
+    db.prepare(
+      `INSERT INTO sessions (session_id, total_swipes) VALUES (?, 1)
+       ON CONFLICT(session_id) DO UPDATE SET total_swipes = total_swipes + 1`
+    ).run(sessionId);
+  }
 
   res.json({ ok: true });
 });
@@ -267,6 +275,78 @@ app.get("/api/matches/:sessionId", (req, res) => {
   matches.sort((a, b) => b.yesRate - a.yesRate || b.yes - a.yes);
 
   res.json({ sessionId, threshold: Math.round(threshold * 100), matches });
+});
+
+/**
+ * POST /api/session/start
+ * Body: { sessionId: string }
+ * Marks the start of a session (called on App mount).
+ */
+app.post("/api/session/start", (req, res) => {
+  const { sessionId } = req.body || {};
+  if (!isNonEmptyString(sessionId, 128)) {
+    return res.status(400).json({ error: "sessionId must be a non-empty string (<=128 chars)" });
+  }
+
+  // Insert or ignore if already exists (only set started_at on first call)
+  db.prepare(
+    `INSERT OR IGNORE INTO sessions (session_id, started_at, total_swipes)
+     VALUES (?, strftime('%s','now'), 0)`
+  ).run(sessionId);
+
+  const session = db.prepare("SELECT started_at FROM sessions WHERE session_id = ?").get(sessionId);
+  res.json({ ok: true, startedAt: session?.started_at });
+});
+
+/**
+ * POST /api/session/end
+ * Body: { sessionId: string }
+ * Marks the end of a session (called on page beforeunload).
+ */
+app.post("/api/session/end", (req, res) => {
+  const { sessionId } = req.body || {};
+  if (!isNonEmptyString(sessionId, 128)) {
+    return res.status(400).json({ error: "sessionId required" });
+  }
+
+  db.prepare(
+    `UPDATE sessions SET ended_at = strftime('%s','now') WHERE session_id = ?`
+  ).run(sessionId);
+
+  const session = db.prepare(
+    `SELECT total_swipes, started_at, ended_at FROM sessions WHERE session_id = ?`
+  ).get(sessionId);
+
+  const duration = session ? (session.ended_at || 0) - session.started_at : 0;
+  res.json({
+    ok: true,
+    totalSwipes: session?.total_swipes || 0,
+    duration,
+  });
+});
+
+/**
+ * GET /api/analytics
+ * Returns aggregate analytics across all sessions.
+ */
+app.get("/api/analytics", (req, res) => {
+  const stats = db
+    .prepare(
+      `SELECT
+         COUNT(DISTINCT session_id) AS total_sessions,
+         COALESCE(SUM(total_swipes), 0) AS total_swipes,
+         COALESCE(AVG(total_swipes), 0) AS avg_swipes_per_session,
+         COUNT(DISTINCT DATE(started_at, 'unixepoch')) AS unique_days
+       FROM sessions`
+    )
+    .get();
+
+  res.json({
+    totalSessions: stats.total_sessions || 0,
+    totalSwipes: stats.total_swipes || 0,
+    avgSwipesPerSession: Math.round((stats.avg_swipes_per_session || 0) * 100) / 100,
+    uniqueDays: stats.unique_days || 0,
+  });
 });
 
 // ---------------- boot ----------------

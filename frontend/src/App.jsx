@@ -4,11 +4,14 @@ import SwipeDeck, { DeckEmpty } from "./components/SwipeDeck.jsx";
 import ResultsView from "./components/ResultsView.jsx";
 import AdminPanel from "./components/AdminPanel.jsx";
 import MatchesView from "./components/MatchesView.jsx";
+import AnalyticsView from "./components/AnalyticsView.jsx";
 import {
   deleteVote,
   fetchItems,
   getOrCreateSessionId,
   postVote,
+  postSessionStart,
+  postSessionEnd,
 } from "./api.js";
 
 export default function App() {
@@ -17,7 +20,7 @@ export default function App() {
   const [index, setIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [view, setView] = useState("swipe"); // 'swipe' | 'results' | 'matches' | 'admin'
+  const [view, setView] = useState("swipe"); // 'swipe' | 'results' | 'matches' | 'admin' | 'analytics'
   const [history, setHistory] = useState([]); // [{ itemId, choice }] for undo
 
   // Pull-down on the deck container also opens results.
@@ -49,6 +52,20 @@ export default function App() {
       }
     })();
     return () => { cancelled = true; };
+  }, [sessionId]);
+
+  // Session lifecycle: start on mount, end on beforeunload
+  useEffect(() => {
+    (async () => {
+      await postSessionStart(sessionId).catch(() => {});
+    })();
+
+    const handleBeforeUnload = async () => {
+      await postSessionEnd(sessionId).catch(() => {});
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [sessionId]);
 
   const onVote = useCallback(async (item, choice) => {
@@ -173,6 +190,19 @@ export default function App() {
             <MatchesView sessionId={sessionId} onBack={() => setView("swipe")} />
           </motion.div>
         )}
+
+        {view === "analytics" && (
+          <motion.div
+            key="analytics"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className="flex-1 flex flex-col"
+          >
+            <AnalyticsView onBack={() => setView("swipe")} />
+          </motion.div>
+        )}
       </AnimatePresence>
     </div>
   );
@@ -183,6 +213,7 @@ function Header({ view, onViewChange, progress, voted, total }) {
     { key: "swipe", label: "Swipe", icon: "🐶" },
     { key: "results", label: "Results", icon: "📊" },
     { key: "matches", label: "Matches", icon: "❤️" },
+    { key: "analytics", label: "Analytics", icon: "📈" },
     { key: "admin", label: "Admin", icon: "➕" },
   ];
 
