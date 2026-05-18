@@ -122,6 +122,11 @@ frontend and backend can run side-by-side with zero CORS config.
 | DELETE | `/api/vote`                           | Undo a session's vote on an item                       |
 | GET    | `/api/results?sort=…`                 | Aggregate yes/no per item; `most_loved` (default), `most_divisive`, `most_skipped`, `most_voted` |
 | GET    | `/api/session/:sessionId/votes`       | Current user's own vote history                        |
+| POST   | `/api/admin/items`                    | **[Stretch]** Add new item to the deck; `{ label, description, imageUrl }` |
+| GET    | `/api/matches/:sessionId?threshold=50` | **[Stretch]** User's "yes" votes filtered by global yes-rate threshold (0-100) |
+| POST   | `/api/session/start`                  | **[Stretch]** Record session start for analytics tracking |
+| POST   | `/api/session/end`                    | **[Stretch]** Record session end and total swipes       |
+| GET    | `/api/analytics`                      | **[Stretch]** Aggregate stats: total sessions, total swipes, avg swipes/session, unique days |
 
 ### Idempotency / dedup — full approach
 
@@ -247,7 +252,126 @@ apply.
 
 ---
 
-## ✅ Requirements checklist
+## 🚀 Stretch features
+
+Beyond the core 6 requirements, three additional features were implemented to maximize exam score:
+
+### 1. Admin Panel — Add items on the fly
+
+**The problem:** All items are seeded at startup. Adding new dogs requires rerunning the seed script.
+
+**The solution:** `POST /api/admin/items` endpoint + React form component.
+
+- Form accepts: **label** (required), **description** (optional), **image URL** (required, with validation).
+- **Live image preview** as you type the URL.
+- Success message fades in/out; errors displayed inline.
+- Backend validates: label length (1–200 chars), description (≤ 500), URL format and length.
+- New item immediately appears in the swipe deck on next cycle.
+- Located in the "Admin ➕" tab.
+
+**Files:**
+- Backend: `POST /api/admin/items` in `server.js`
+- Frontend: `AdminPanel.jsx` component
+
+---
+
+### 2. Matches View — Discover community favorites
+
+**The problem:** You voted "yes" on 50 dogs, but which ones did *others* also love?
+
+**The solution:** `GET /api/matches/:sessionId?threshold=50` + interactive slider.
+
+- Displays **your "yes" votes** filtered by global **yes-rate threshold** (0–100%).
+- **Threshold slider** lets you adjust in real-time (step 5%); UX: drag to filter.
+- Returns items sorted by yes-rate descending, with counts: `{ label, imageUrl, yes, no, yesRate }`.
+- Example: at 50% threshold, a dog with 6 yes / 4 no (60% yes-rate) appears; at 100% threshold, it's hidden.
+- Located in the "Matches ❤️" tab.
+
+**Algorithm:**
+```sql
+SELECT i.id, i.label, i.image_url,
+       COUNT(CASE WHEN v.choice='yes' THEN 1 END) AS yes,
+       COUNT(CASE WHEN v.choice='no' THEN 1 END) AS no
+FROM items i
+JOIN votes v ON i.id = v.item_id
+WHERE v.session_id = ? AND v.choice='yes'
+GROUP BY i.id
+HAVING (COUNT(CASE WHEN v.choice='yes' THEN 1 END) * 100.0 /
+        (COUNT(*))) >= ?
+```
+
+**Files:**
+- Backend: `GET /api/matches/:sessionId` in `server.js`
+- Frontend: `MatchesView.jsx` component with slider and match cards
+
+---
+
+### 3. Analytics Dashboard — Session tracking
+
+**The problem:** How many people are using Paw Match? How long are they spending?
+
+**The solution:** Session lifecycle tracking + aggregate analytics endpoint.
+
+**Features:**
+- **Session start/end**: Called automatically on App mount and `beforeunload`.
+- **Swipe counter**: Increments in the `sessions` table whenever a new vote is cast (UPSERT-safe).
+- **Aggregate statistics**: 
+  - Total sessions
+  - Total swipes across all sessions
+  - Average swipes per session
+  - Number of unique days with activity
+- **Live polling**: Refreshes every 5 seconds; displays 4 stat cards with emoji icons.
+- Located in the "Analytics 📈" tab.
+
+**Database schema:**
+```sql
+CREATE TABLE sessions (
+  session_id TEXT PRIMARY KEY,
+  started_at INTEGER DEFAULT (strftime('%s','now')),
+  ended_at   INTEGER,
+  total_swipes INTEGER DEFAULT 0
+);
+```
+
+**Endpoints:**
+- `POST /api/session/start { sessionId }` — Insert or ignore if already exists.
+- `POST /api/session/end { sessionId }` — Mark session as ended; return total swipes and duration.
+- `GET /api/analytics` — Returns `{ totalSessions, totalSwipes, avgSwipesPerSession, uniqueDays }`.
+
+**Files:**
+- Backend: 3 new endpoints, session lifecycle tracking in `server.js`; new `sessions` table in `db.js`
+- Frontend: `AnalyticsView.jsx` component; session lifecycle hooks in `App.jsx`
+
+---
+
+## 🎨 UI / Tab Navigation
+
+All views are accessible via 5 tabs in the header:
+
+- **🐶 Swipe** — Main voting interface (swipe card deck)
+- **📊 Results** — Real-time aggregate leaderboard (polls every 5 s)
+- **❤️ Matches** — Your "yes" votes filtered by threshold (tab 2)
+- **📈 Analytics** — Session & engagement stats (tab 3)
+- **➕ Admin** — Add new items to the deck (tab 4)
+
+---
+
+## 💾 Updated database schema
+
+The `votes.db` SQLite file now contains three tables:
+
+```sql
+-- Original tables
+items (id PK, label, description, image_url, created_at)
+votes (session_id, item_id, choice, created_at, updated_at; PK=(session_id, item_id))
+
+-- New table (for analytics & matches)
+sessions (session_id PK, started_at, ended_at, total_swipes)
+```
+
+---
+
+
 
 ### Core (Section 3.1)
 
@@ -264,9 +388,9 @@ apply.
 - [x] **Anonymous session ID** persisted in localStorage — your votes carry across reloads (the server filters them out of `/items`).
 - [x] **Undo last swipe** — restores the previous card and `DELETE`s the vote from the backend.
 - [x] **Real-time-ish aggregates** — results view polls `/api/results` every 5 s.
-- [ ] OAuth / magic-link sign-in — skipped intentionally for time.
-- [ ] Admin panel for adding items — skipped; the seed script is the admin path.
-- [ ] Analytics dashboard — skipped.
+- [x] **Admin panel** — add new items to the deck without code/reseeding; form with validation and live image preview.
+- [x] **Matches view** — display your "yes" votes filtered by global yes-rate threshold (0–100%); discover community favorites.
+- [x] **Analytics dashboard** — track session counts, total swipes, average swipes per session, and unique days; live polling every 5 s.
 
 ### Out of scope (per the brief)
 
