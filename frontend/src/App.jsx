@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import SwipeDeck, { DeckEmpty } from "./components/SwipeDeck.jsx";
 import ResultsView from "./components/ResultsView.jsx";
 import AdminPanel from "./components/AdminPanel.jsx";
+import MatchesView from "./components/MatchesView.jsx";
 import {
   deleteVote,
   fetchItems,
@@ -16,7 +17,7 @@ export default function App() {
   const [index, setIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [view, setView] = useState("swipe"); // 'swipe' | 'results' | 'admin'
+  const [view, setView] = useState("swipe"); // 'swipe' | 'results' | 'matches' | 'admin'
   const [history, setHistory] = useState([]); // [{ itemId, choice }] for undo
 
   // Pull-down on the deck container also opens results.
@@ -159,6 +160,19 @@ export default function App() {
             />
           </motion.div>
         )}
+
+        {view === "matches" && (
+          <motion.div
+            key="matches"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className="flex-1 flex flex-col"
+          >
+            <MatchesView sessionId={sessionId} onBack={() => setView("swipe")} />
+          </motion.div>
+        )}
       </AnimatePresence>
     </div>
   );
@@ -168,6 +182,7 @@ function Header({ view, onViewChange, progress, voted, total }) {
   const tabs = [
     { key: "swipe", label: "Swipe", icon: "🐶" },
     { key: "results", label: "Results", icon: "📊" },
+    { key: "matches", label: "Matches", icon: "❤️" },
     { key: "admin", label: "Admin", icon: "➕" },
   ];
 

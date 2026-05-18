@@ -72,3 +72,9 @@ export async function postNewItem({ label, description, imageUrl }) {
     })
   );
 }
+
+export async function fetchMatches(sessionId, threshold = 50) {
+  const url = `${BASE}/matches/${encodeURIComponent(sessionId)}?threshold=${threshold}`;
+  const data = await jsonOrThrow(await fetch(url));
+  return data;
+}

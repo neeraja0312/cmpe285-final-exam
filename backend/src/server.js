@@ -215,6 +215,60 @@ app.get("/api/session/:sessionId/votes", (req, res) => {
   res.json({ votes: rows });
 });
 
+/**
+ * GET /api/matches/:sessionId?threshold=50
+ * Returns items where the user voted "yes" AND global yes-rate >= threshold (0-100).
+ * Threshold default is 50 (50%).
+ */
+app.get("/api/matches/:sessionId", (req, res) => {
+  const { sessionId } = req.params;
+  const threshold = Math.max(0, Math.min(100, parseInt(req.query.threshold || "50", 10))) / 100;
+
+  if (!isNonEmptyString(sessionId, 128)) {
+    return res.status(400).json({ error: "invalid sessionId" });
+  }
+
+  // Get total sessions for skip-rate calculation
+  const totalSessions = db
+    .prepare("SELECT COUNT(DISTINCT session_id) AS n FROM votes")
+    .get().n;
+
+  // Find items where this user voted "yes" and compute global stats
+  const rows = db
+    .prepare(
+      `SELECT 
+         i.id,
+         i.label,
+         i.description,
+         i.image_url AS imageUrl,
+         COALESCE(SUM(CASE WHEN v.choice = 'yes' THEN 1 ELSE 0 END), 0) AS yes,
+         COALESCE(SUM(CASE WHEN v.choice = 'no'  THEN 1 ELSE 0 END), 0) AS no,
+         COUNT(v.item_id) AS total
+       FROM items i
+       LEFT JOIN votes v ON v.item_id = i.id
+       WHERE i.id IN (
+         SELECT item_id FROM votes WHERE session_id = ? AND choice = 'yes'
+       )
+       GROUP BY i.id`
+    )
+    .all(sessionId);
+
+  // Calculate derived metrics and filter by threshold
+  const matches = [];
+  for (const r of rows) {
+    r.yesRate = r.total > 0 ? r.yes / r.total : 0;
+    r.skipRate = totalSessions > 0 ? 1 - r.total / totalSessions : 0;
+    if (r.yesRate >= threshold) {
+      matches.push(r);
+    }
+  }
+
+  // Sort by yes-rate descending
+  matches.sort((a, b) => b.yesRate - a.yesRate || b.yes - a.yes);
+
+  res.json({ sessionId, threshold: Math.round(threshold * 100), matches });
+});
+
 // ---------------- boot ----------------
 
 app.listen(PORT, () => {
