@@ -21,3 +21,18 @@ img {
 /* Custom thin scrollbar in the results list */
 .scroll-thin::-webkit-scrollbar { width: 6px; }
 .scroll-thin::-webkit-scrollbar-thumb { background: rgba(15,23,42,0.15); border-radius: 9999px; }
+
+/* Scrollbar hidden by default, visible on hover */
+.scrollbar-hidden::-webkit-scrollbar { 
+  height: 6px; 
+}
+.scrollbar-hidden::-webkit-scrollbar-track { 
+  background: transparent; 
+}
+.scrollbar-hidden::-webkit-scrollbar-thumb { 
+  background: transparent; 
+  border-radius: 3px; 
+}
+.scrollbar-hidden:hover::-webkit-scrollbar-thumb { 
+  background: rgba(15,23,42,0.3); 
+}

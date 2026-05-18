@@ -188,6 +188,7 @@ export default function App() {
             ) : (
               <AdminLogin
                 onLogin={() => setAdminLoggedIn(true)}
+                onBack={() => setView("swipe")}
               />
             )}
           </motion.div>
@@ -241,21 +242,23 @@ function Header({ view, onViewChange, progress, voted, total }) {
         </div>
       </div>
 
-      {/* Tab navigation */}
-      <div className="flex gap-2 mb-3">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => onViewChange(tab.key)}
-            className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold transition ${
-              view === tab.key
-                ? "bg-accent text-white"
-                : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-            }`}
-          >
-            {tab.icon} {tab.label}
-          </button>
-        ))}
+      {/* Tab navigation - horizontally scrollable */}
+      <div className="overflow-x-auto scrollbar-hidden mb-3 -mx-4 px-4">
+        <div className="flex gap-2 w-min">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => onViewChange(tab.key)}
+              className={`px-3 py-2 rounded-lg text-sm font-semibold transition whitespace-nowrap ${
+                view === tab.key
+                  ? "bg-accent text-white"
+                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+              }`}
+            >
+              {tab.icon} {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Progress bar (only on swipe view) */}

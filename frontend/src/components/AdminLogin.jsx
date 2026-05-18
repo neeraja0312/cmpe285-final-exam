@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-export default function AdminLogin({ onLogin }) {
+export default function AdminLogin({ onLogin, onBack }) {
   const [id, setId] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
@@ -30,7 +30,19 @@ export default function AdminLogin({ onLogin }) {
     <div className="flex flex-col min-h-screen">
       {/* Header */}
       <header className="px-4 pt-4 pb-2 max-w-md w-full mx-auto border-b border-slate-200">
-        <h2 className="text-2xl font-bold">Admin Access 🔐</h2>
+        <div className="flex items-center justify-between mb-2">
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="text-slate-600 hover:text-slate-900 transition"
+              aria-label="Go back"
+            >
+              ← Back
+            </button>
+          )}
+          <h2 className="text-2xl font-bold">Admin Access 🔐</h2>
+          <div className="w-12" /> {/* Spacer to center the title */}
+        </div>
       </header>
 
       {/* Content */}

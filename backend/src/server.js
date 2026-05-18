@@ -341,21 +341,24 @@ app.get("/api/analytics", (req, res) => {
     )
     .get();
 
-  // Calculate average decision time (in seconds) for completed sessions
+  // Calculate average decision time: total session duration / total swipes
   const decisionTimeStats = db
     .prepare(
       `SELECT
-         AVG(CASE 
-           WHEN total_swipes > 0 AND ended_at IS NOT NULL 
-           THEN (ended_at - started_at) / CAST(total_swipes AS FLOAT)
-           ELSE NULL
-         END) AS avg_decision_seconds
+         COALESCE(SUM(CASE 
+           WHEN ended_at IS NOT NULL 
+           THEN (ended_at - started_at)
+           ELSE 0
+         END), 0) AS total_duration,
+         COALESCE(SUM(total_swipes), 0) AS total_swipes_count
        FROM sessions
-       WHERE ended_at IS NOT NULL AND total_swipes > 0`
+       WHERE total_swipes > 0`
     )
     .get();
 
-  const avgDecisionSeconds = decisionTimeStats.avg_decision_seconds || 0;
+  const avgDecisionSeconds = decisionTimeStats.total_swipes_count > 0
+    ? decisionTimeStats.total_duration / decisionTimeStats.total_swipes_count
+    : 0;
 
   res.json({
     totalSessions: stats.total_sessions || 0,
