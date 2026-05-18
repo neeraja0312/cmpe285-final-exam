@@ -7,18 +7,21 @@ export default function MatchesView({ sessionId, onBack }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Fetch matches when threshold changes
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         setLoading(true);
         const data = await fetchMatches(sessionId, threshold);
+        console.log(`[FRONTEND] Fetched matches: threshold=${threshold}, count=${data.matches?.length || 0}, data=`, data);
         if (!cancelled) {
           setMatches(data.matches || []);
           setError(null);
         }
       } catch (e) {
         if (!cancelled) {
+          console.error("[FRONTEND] Error:", e.message);
           setError(e.message);
           setMatches([]);
         }
@@ -27,6 +30,22 @@ export default function MatchesView({ sessionId, onBack }) {
       }
     })();
     return () => { cancelled = true; };
+  }, [sessionId, threshold]);
+
+  // Poll every 5 seconds for real-time updates
+  useEffect(() => {
+    const id = setInterval(() => {
+      (async () => {
+        try {
+          const data = await fetchMatches(sessionId, threshold);
+          console.log(`[POLL] threshold=${threshold}, count=${data.matches?.length || 0}`);
+          setMatches(data.matches || []);
+        } catch (e) {
+          console.error("Poll error:", e.message);
+        }
+      })();
+    }, 5000);
+    return () => clearInterval(id);
   }, [sessionId, threshold]);
 
   const handleThresholdChange = (e) => {
@@ -50,7 +69,7 @@ export default function MatchesView({ sessionId, onBack }) {
         {/* Threshold Slider */}
         <div className="mb-4">
           <label className="block text-sm font-semibold text-slate-700 mb-2">
-            Show items with ≥ {threshold}% yes votes
+            Show items with ≤ {threshold}% yes votes
           </label>
           <input
             type="range"
@@ -66,6 +85,13 @@ export default function MatchesView({ sessionId, onBack }) {
             <span>50%</span>
             <span>100%</span>
           </div>
+        </div>
+
+        {/* Count display */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-center">
+          <p className="text-sm font-semibold text-blue-900">
+            {matches.length} match{matches.length === 1 ? '' : 'es'} found at {threshold}% threshold
+          </p>
         </div>
       </header>
 
