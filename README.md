@@ -260,8 +260,11 @@ Beyond the core 6 requirements, three additional features were implemented to ma
 
 **The problem:** All items are seeded at startup. Adding new dogs requires rerunning the seed script.
 
-**The solution:** `POST /api/admin/items` endpoint + React form component.
+**The solution:** `POST /api/admin/items` endpoint + React form component with login protection.
 
+- **Login required:** Admin panel is protected with credentials:
+  - **ID:** `admin`
+  - **Password:** `admin123`
 - Form accepts: **label** (required), **description** (optional), **image URL** (required, with validation).
 - **Live image preview** as you type the URL.
 - Success message fades in/out; errors displayed inline.
@@ -271,7 +274,7 @@ Beyond the core 6 requirements, three additional features were implemented to ma
 
 **Files:**
 - Backend: `POST /api/admin/items` in `server.js`
-- Frontend: `AdminPanel.jsx` component
+- Frontend: `AdminPanel.jsx` component; `AdminLogin.jsx` login form
 
 ---
 

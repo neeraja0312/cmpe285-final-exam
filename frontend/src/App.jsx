@@ -3,11 +3,13 @@ import { AnimatePresence, motion } from "framer-motion";
 import SwipeDeck, { DeckEmpty } from "./components/SwipeDeck.jsx";
 import ResultsView from "./components/ResultsView.jsx";
 import AdminPanel from "./components/AdminPanel.jsx";
+import AdminLogin from "./components/AdminLogin.jsx";
 import MatchesView from "./components/MatchesView.jsx";
 import AnalyticsView from "./components/AnalyticsView.jsx";
 import {
   deleteVote,
   fetchItems,
+  fetchTotalItems,
   getOrCreateSessionId,
   postVote,
   postSessionStart,
@@ -17,11 +19,13 @@ import {
 export default function App() {
   const sessionId = useMemo(() => getOrCreateSessionId(), []);
   const [items, setItems] = useState([]);
+  const [totalItems, setTotalItems] = useState(0);
   const [index, setIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [view, setView] = useState("swipe"); // 'swipe' | 'results' | 'matches' | 'admin' | 'analytics'
   const [history, setHistory] = useState([]); // [{ itemId, choice }] for undo
+  const [adminLoggedIn, setAdminLoggedIn] = useState(false);
 
   // Pull-down on the deck container also opens results.
   const containerRef = useRef(null);
@@ -41,8 +45,10 @@ export default function App() {
     (async () => {
       try {
         const list = await fetchItems(sessionId);
+        const total = await fetchTotalItems();
         if (!cancelled) {
           setItems(list);
+          setTotalItems(total);
           setIndex(0);
         }
       } catch (e) {
@@ -97,7 +103,7 @@ export default function App() {
   }, [history, index, sessionId]);
 
   const remaining = items.length - index;
-  const progress = items.length === 0 ? 0 : Math.min(index / items.length, 1);
+  const progress = totalItems === 0 ? 0 : Math.min(index / totalItems, 1);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -115,7 +121,7 @@ export default function App() {
               onViewChange={setView}
               progress={progress}
               voted={index}
-              total={items.length}
+              total={totalItems}
             />
 
             <main
@@ -171,10 +177,19 @@ export default function App() {
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             className="flex-1 flex flex-col"
           >
-            <AdminPanel
-              onItemAdded={refetchItems}
-              onBack={() => setView("swipe")}
-            />
+            {adminLoggedIn ? (
+              <AdminPanel
+                onItemAdded={refetchItems}
+                onBack={() => {
+                  setAdminLoggedIn(false);
+                  setView("swipe");
+                }}
+              />
+            ) : (
+              <AdminLogin
+                onLogin={() => setAdminLoggedIn(true)}
+              />
+            )}
           </motion.div>
         )}
 

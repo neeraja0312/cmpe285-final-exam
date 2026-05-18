@@ -32,6 +32,11 @@ export async function fetchItems(sessionId) {
   return data.items;
 }
 
+export async function fetchTotalItems() {
+  const data = await jsonOrThrow(await fetch(`${BASE}/health`));
+  return data.items;
+}
+
 export async function postVote({ itemId, choice, sessionId }) {
   return jsonOrThrow(
     await fetch(`${BASE}/vote`, {
