@@ -50,7 +50,7 @@ export default function SwipeCard({
     if (dx > SWIPE_THRESHOLD || vx > 800) {
       await controls.start({
         x: 600, y: dy, rotate: 22, opacity: 0,
-        transition: { duration: 0.25 },
+        transition: { duration: 0.5 },
       });
       onCommit({ type: "vote", choice: "yes" });
       return;
@@ -58,7 +58,7 @@ export default function SwipeCard({
     if (dx < -SWIPE_THRESHOLD || vx < -800) {
       await controls.start({
         x: -600, y: dy, rotate: -22, opacity: 0,
-        transition: { duration: 0.25 },
+        transition: { duration: 0.5 },
       });
       onCommit({ type: "vote", choice: "no" });
       return;
@@ -74,7 +74,7 @@ export default function SwipeCard({
     const targetX = choice === "yes" ? 600 : -600;
     await controls.start({
       x: targetX, rotate: choice === "yes" ? 22 : -22, opacity: 0,
-      transition: { duration: 0.25 },
+      transition: { duration: 0.5 },
     });
     onCommit({ type: "vote", choice });
   }

@@ -13,8 +13,29 @@ A mobile-first, swipe-to-vote web app for the **CMPE 285 Spring 2026 Final, Ques
 
 ## 🎬 Demo
 
-- **Live walkthrough (YouTube):** *(link goes here after recording)*
+- **Live walkthrough (YouTube):** https://youtu.be/fvRtENWwDP0
 - Three screenshots are pasted into the exam doc under Q10.
+
+---
+
+### Core Features Implemented(Section 3.1)
+
+- **Theme** — Adoptable dogs (documented above).
+- **≥ 100 distinct items** — 110 dogs seeded from dog.ceo with label, description, and image URL.
+- **Swipe card UI** — right = adopt, left = pass; live tilt; green / red color tint as you drag; ADOPT / NOPE stamps fade in past the threshold; smooth flick-off animation; next card auto-promoted.
+- **Tap "Yes" / "No" buttons** — also wired to the gesture, for desktop graders and accessibility.
+- **Results view** — reachable by swiping the card down or tapping the leaderboard button; shows aggregate yes/no for every item; **four sort modes** (most loved, most divisive, most skipped, most voted).
+- **Backend persistence** — SQLite is the source of truth; `localStorage` only caches the session ID, not votes.
+- **End-of-deck state** — friendly "You've met every pup!" screen with a CTA to the leaderboard.
+
+### Stretch Features Implemented(Section 3.2)
+
+- **Anonymous session ID** — UUID minted in the browser, persisted in `localStorage` (`paw-match.sessionId`); sent on every vote/items/undo request so your progress survives reloads and dedup works server-side (see *Anonymous session identity* above).
+- **Undo last swipe** — restores the previous card and `DELETE`s the vote from the backend.
+- **Real-time-ish aggregates** — results view polls `/api/results` every 5 s.
+- **Admin panel** — add new items to the deck without code/reseeding; form with validation and live image preview.
+- **Matches view** — display your "yes" votes filtered by global yes-rate threshold (0–100%); discover community favorites.
+- **Analytics dashboard** — track session counts, total swipes, average swipes per session, and unique days; live polling every 5 s.
 
 ---
 
@@ -379,7 +400,7 @@ All views are accessible via 5 tabs in the header:
 
 ---
 
-## 💾 Updated database schema
+## 💾 Database schema
 
 The `votes.db` SQLite file now contains three tables:
 
@@ -392,28 +413,6 @@ votes (session_id, item_id, choice, created_at, updated_at; PK=(session_id, item
 sessions (session_id PK, started_at, ended_at, total_swipes)
 ```
 
----
-
-### Core (Section 3.1)
-
-- **Theme** — Adoptable dogs (documented above).
-- **≥ 100 distinct items** — 110 dogs seeded from dog.ceo with label, description, and image URL.
-- **Swipe card UI** — right = adopt, left = pass; live tilt; green / red color tint as you drag; ADOPT / NOPE stamps fade in past the threshold; smooth flick-off animation; next card auto-promoted.
-- **Tap "Yes" / "No" buttons** — also wired to the gesture, for desktop graders and accessibility.
-- **Results view** — reachable by swiping the card down or tapping the leaderboard button; shows aggregate yes/no for every item; **four sort modes** (most loved, most divisive, most skipped, most voted).
-- **Backend persistence** — SQLite is the source of truth; localStorage only caches the anonymous session ID.
-- **End-of-deck state** — friendly "You've met every pup!" screen with a CTA to the leaderboard.
-
-### Stretch (Section 3.2)
-
-- **Anonymous session ID** persisted in localStorage — your votes carry across reloads (the server filters them out of `/items`).
-- **Undo last swipe** — restores the previous card and `DELETE`s the vote from the backend.
-- **Real-time-ish aggregates** — results view polls `/api/results` every 5 s.
-- **Admin panel** — add new items to the deck without code/reseeding; form with validation and live image preview.
-- **Matches view** — display your "yes" votes filtered by global yes-rate threshold (0–100%); discover community favorites.
-- **Analytics dashboard** — track session counts, total swipes, average swipes per session, and unique days; live polling every 5 s.
-
----
 
 ## 📁 Layout
 
